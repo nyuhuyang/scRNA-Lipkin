@@ -5,28 +5,51 @@
 # ######################################################################
 
 library(Seurat)
+library(magrittr)
+library(harmony)
 library(dplyr)
-library(scran)
 library(kableExtra)
 source("../R/Seurat_functions.R")
 path <- paste0("./output/",gsub("-","",Sys.Date()),"/")
-dir.create(path, recursive = T)
+if(!dir.exists(path)) dir.create(path, recursive = T)
+if(!dir.exists("./data/")) dir.create("data")
 ########################################################################
 #
 #  1 Data preprocessing
 # 
 # ######################################################################
 #======1.1 Load the data files and Set up Seurat object =========================
-# Load the dataset
+# read sample summary list
+df_samples <- readxl::read_excel("doc/181128_scRNAseq_info.xlsx")
+colnames(df_samples) <- colnames(df_samples) %>% tolower
+sample_n = which(df_samples$tests %in% c("test",paste0("test",1:6)))
+df_samples[sample_n,] %>% kable() %>% kable_styling()
+table(df_samples$tests);nrow(df_samples)
+samples <- df_samples$sample[sample_n]
+sample.id <- df_samples$sample[sample_n]
+projects <- df_samples$project[sample_n]
+tests <- df_samples$tests[sample_n]
+conditions <- df_samples$conditions[sample_n]
 
-# setup Seurat objects since both count matrices have already filtered
-# cells, we do no additional filtering here
+# check missing data
+current <- list.files("data")[!grepl(".Rda|RData",list.files("data"))]
+(new_samples <- sample.id[!(samples %in% current)])
 
-# rename all "_" into "-" in sample names 
+# Move files from Download to ./data and rename them
+current.folder <- "/Users/yah2014/Downloads"
+new.folders <- "./data"
+for(new_sample in new_samples){
+    list.of.files <- list.files(paste(current.folder, new_sample,"outs","filtered_gene_bc_matrices","mm10",sep = "/")
+    new.sample <- sub("_","-",new_sample)
+    new.folder <- list.files(paste("./data", new.sample,"outs","filtered_gene_bc_matrices","mm10",sep = "/")
+    if(!dir.exists(new.folder)) dir.create(new.folder, recursive = T)
+    # copy the files to the new folder
+    file.copy(list.of.files, new.folder)
+}
+
+## Load the dataset
 EC_raw <- list()
 EC_Seurat <- list()
-samples <- c("Black6-Control-1","Black6-Contorl-2")
-conditions <- c("Control","Control")
 for(i in 1:length(samples)){
         EC_raw[[i]] <- Read10X(data.dir = paste0("./data/",
                                                    samples[i],"/outs/filtered_gene_bc_matrices/mm10/"))
@@ -35,7 +58,7 @@ for(i in 1:length(samples)){
                                                min.cells = 3,
                                                min.genes = 200,
                                                names.delim = "_",
-                                               project = "paula")
+                                               project = projects[i],)
         EC_Seurat[[i]]@meta.data$conditions <- conditions[i]
 }
 EC <- Reduce(function(x, y) MergeSeurat(x, y, do.normalize = F), EC_Seurat)

@@ -31,11 +31,11 @@ df_samples = df_samples[keep,]
 current <- list.files("data")
 (current <- current[!grepl(".Rda|RData",current)])
 (missing_data <- df_samples$sample.id[!(df_samples$sample.id %in% current)])
-
+species = unique(df_samples$species)
 # select species
-if(unique(df_samples$species) %in% c("Homo_sapiens","Human")) species <- "hg19"
-if(unique(df_samples$species) %in% c("Mus_musculus","Mouse")) species <- "mm10"
-if(unique(df_samples$species) == "Danio_rerio") species <- "danRer10"
+if(species %in% c("Homo_sapiens","Human")) species <- "hg19"
+if(species %in% c("Mus_musculus","Mouse")) species <- "mm10"
+if(species == "Danio_rerio") species <- "danRer10"
 
 message("Copying the datasets")
 if(length(missing_data)>0){
@@ -83,8 +83,8 @@ if(is.na(args[2])){
         QC.list <- cbind(df_samples,cell.number, median.nUMI, median.nGene, 
                          min.nUMI,min.nGene, row.names = df_samples$samples)
         write.csv(QC.list,paste0(path,"QC_list.csv"))
-        #QC.list %>% kable() %>% kable_styling()
-        remove(QC_list,median.nUMI,median.nGene,min.nUMI,min.nGene,QC.list);GC()
+        QC.list %>% kable() %>% kable_styling()
+        remove(median.nUMI,median.nGene,min.nUMI,min.nGene,QC.list);GC()
 }
 
 #========1.1.3 merge ===================================
@@ -92,14 +92,14 @@ object <- Reduce(function(x, y) merge(x, y, do.normalize = F), Seurat_list)
 remove(Seurat_list);GC()
 
 # read and select mitochondial genes
-if(species == "hg19") mito = "^MT-"
-if(species == "mm10") mito = "^mt-" # not Mt-
-if(species == "danRer10") mito = "^mt-"
+if(unique(df_samples$species) %in% c("hg19","Homo_sapiens")) mito = "^MT-"
+if(unique(df_samples$species) %in% c("mm10","Mus_musculus")) mito = "^mt-" # not Mt-
+if(unique(df_samples$species) %in% "danRer10") mito = "^mt-"
 message("mito.genes:")
 (mito.features <- grep(pattern = mito, x = rownames(object), value = TRUE))
 
 Idents(object) = "orig.ident"
-object[["percent.mt"]] <- PercentageFeatureSet(object = object, pattern = mito)
+object <- PercentageFeatureSet(object = object, pattern = "^mt-", col.name = "percent.mt")
 Idents(object) = factor(Idents(object),levels = df_samples$sample)
 g1 <- lapply(c("nFeature_RNA", "nCount_RNA", "percent.mt"), function(features){
         VlnPlot(object = object, features = features, ncol = 3, pt.size = 0.01)+
@@ -143,4 +143,4 @@ remove(clusters_list);GC()
 #plot(sce_list[[1]]$nCount_RNA, sizeFactors(sce_list[[1]]), log="xy")
 sce_list <- lapply(sce_list, normalize)
 
-save(sce_list, file = paste0("data/","sce_",species,"_",length(df_samples$sample),"_",gsub("-","",Sys.Date()),".Rda"))
+save(sce_list, file = paste0("data/","sce_",length(df_samples$sample),"_",gsub("-","",Sys.Date()),".Rda"))

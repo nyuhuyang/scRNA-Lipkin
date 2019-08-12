@@ -20,9 +20,9 @@ if(!dir.exists(path)) dir.create(path, recursive = T)
 # 3.1.1 load data
 # Load some results from Seurat
 #============ read pathways  =====================
-(load(file="data/LynchSyndrome_6_20190802.Rda"))
+#(load(file="data/LynchSyndrome_6_20190802.Rda"))
 
-res = read.csv(file="output/20190811/DEG/pairwise_comparision_SCT.csv",
+res = read.csv(file="output/20190811/6. DE analysis/DEG/pairwise_comparision_SCT.csv",
                         row.names = 1, stringsAsFactors=F)
 table(res$cluster)
 head(res)
@@ -46,6 +46,13 @@ for (i in 1:length(hallmark)){
         print(paste0(i,":",length(hallmark)))
 }
 
+allpathways_mouse <- vector("list",length(allpathways))
+names(allpathways_mouse) = names(allpathways)
+for (i in 1:length(allpathways)){
+        allpathways_mouse[[i]] <- FilterGenes(object,allpathways[[i]])
+        print(paste0(i,":",length(allpathways)))
+}
+
 (df_table <- table(object$celltype.conditions) %>% as.data.frame() %>% 
                 .[order(.$Freq, decreasing = T)[1:12],])
 
@@ -58,22 +65,28 @@ for(i in 1:length(clusters)) FgseaBarplot(pathways=hallmark_mouse, stats=res, np
                                cut.off = "padj",cut.off.value = 0.25,
                                sample="Lynch Syndrome",pathway.name = "Hallmark", hjust=0.5,
                                width=10, height=7)
+res$cluster1.vs.cluster2 %<>% plyr::mapvalues(from = clusters,
+                                              to = celltypes)
 
-for(i in 1:length(clusters)) FgseaBarplot(pathways=allpathways, stats=res, nperm=1000,show=50,
-                                       cluster = clusters[i],sample = cell.line,hjust=0,
-                                       pathway.name = "Hallmark, biocarta,and KEGG")
+for(i in 1:length(clusters)) FgseaBarplot(pathways=allpathways_mouse, stats=res, nperm=1000,
+                                          cluster = clusters[i],no.legend = F,
+                                          cut.off = "padj",cut.off.value = 0.25,
+                                          sample="Lynch Syndrome",pathway.name = "All_pathways", hjust=0.5,
+                                          width=10, height=7)
 
-res$cluster1.vs.cluster2 %<>% plyr::mapvalues(from = )
-
-FgseaDotPlot(stats=res, pathways=hallmark_mouse, nperm=1000,padj = 0.25,pval = 0.05,
+FgseaDotPlot(stats=res, pathways=hallmark_mouse, nperm=1000,pval = 0.01,
              order.by = c(4,"NES"),decreasing = F,
-             size = "-log10(pval)", fill = "NES",sample = "each B_MCL clusters", 
-             pathway.name = "Hallmark",rotate.x.text = F)
+             size = "-log10(pval)", fill = "NES",sample = "each cell type", 
+             pathway.name = "Hallmark",rotate.x.text = T)
 
-FgseaDotPlot(stats=res, pathways=allpathways, nperm=1000,padj = 0.1,pval = 0.02,
-             order.by = c(4,"NES"),decreasing = F,
+fgseaRes <- FgseaDotPlot(stats=res, pathways=allpathways_mouse, nperm=1000,padj = 0.1,pval = 0.005,
+             order.by = c(4,"NES"),decreasing = F,do.return = T,
              size = "-log10(pval)", fill = "NES",sample = "each B_MCL clusters", 
              rotate.x.text = F, pathway.name = "Hallmark, biocarta,and KEGG")
+df_fgseaRes <- data.table::rbindlist(fgseaRes) %>% as.data.frame()
+write.csv(df_fgseaRes, paste0(path,"GSEA_all_pathways.csv"))
+
+
 
 df_samples <- readxl::read_excel("doc/190626_scRNAseq_info.xlsx")
 colnames(df_samples) <- tolower(colnames(df_samples))

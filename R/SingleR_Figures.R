@@ -69,10 +69,11 @@ Idents(object) = "integrated_snn_res.0.6"
 ##############################
 # process color scheme
 ##############################
-singlerDF[,c("singler1sub")] %>% table() %>% prop.table() %>% kable() %>% kable_styling()
 object <- AddMetaData(object = object,metadata = singlerDF)
 object <- AddMetaColor(object = object, label= "singler1sub", colors = singler.colors)
 
+table(object$singler1sub,object$orig.ident) %>% prop.table(margin = 2) %>%  kable() %>% kable_styling()
+#
 Idents(object) <- "singler1sub"
 object %<>% sortIdent()
 TSNEPlot.1(object, group.by="singler1sub",cols = ExtractMetaColor(object),

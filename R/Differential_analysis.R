@@ -18,11 +18,9 @@ if(!dir.exists(path))dir.create(path, recursive = T)
 #detect changes in gene expression between young and aged, 
 #in the different cell types and subtypes. 
 #It will also be interesting to check if there is some subtype enriched in young compared to aged or viceversa. 
-
 # 3.1.1 load data
 # Rename ident
 (load(file = "data/LynchSyndrome_6_20190802.Rda"))
-
 
 object@meta.data$celltype.conditions = paste0(object@meta.data$singler1main,"_",
                                                 object@meta.data$conditions)
@@ -31,20 +29,21 @@ object@meta.data$celltype.conditions = paste0(object@meta.data$singler1main,"_",
 
 (celltypes <- df_table$Var1 %>% gsub("_.*","",.) %>% unique)
 ident.1 <- paste0(celltypes,"_Contorl")
-ident.2 <- paste0(celltypes,"_Aspirin")
+ident.2 <- paste0(celltypes,"_Naproxen")
 
 Idents(object) = "celltype.conditions"
 table(Idents(object))
 subfolder <- paste0(path,"DEG/")
+DefaultAssay(object) = "SCT"
 gde.pair <- FindPairMarkers(object, ident.1 = ident.1, ident.2 = ident.2,
-                            logfc.threshold = 0.01, min.cells.group =3,
-                            return.thresh = 0.05, only.pos = FALSE, save.path = subfolder)
-gde.pair = gde.pair[gde.pair$p_val_adj< 0.25,]
-write.csv(gde.pair, paste0(subfolder,"pairwise_comparision.csv"))
+                            logfc.threshold = 0.01, min.cells.group =3,assay.type = "SCT",
+                            return.thresh = 1, only.pos = FALSE, save.path = subfolder)
+#gde.pair = gde.pair[gde.pair$p_val_adj< 0.25,]
+write.csv(gde.pair, paste0(subfolder,"pairwise_comparision_SCT.csv"))
 gde.pair = read.csv("output/20190803/DEG/pairwise_comparision.csv",row.names = 1)
 head(gde.pair,10) %>% kable %>% kable_styling
 
-(titles <- paste(ident.2, "vs.", ident.1))
+(titles <- paste(ident.1, "vs.", ident.2))
 # Volcano plot=========
 (clusters <- unique(gde.pair$cluster1.vs.cluster2))
 for(i in 1:length(clusters)){

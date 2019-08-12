@@ -11,7 +11,7 @@ if(!dir.exists(marker_path))dir.create(marker_path, recursive = T)
 
 # ======== 2.1 =========== test with known markers==================
 (load(file="data/LynchSyndrome_6_20190802.Rda"))
-DefaultAssay(object) <- "RNA"
+DefaultAssay(object) <- "integrated"
 #df_markers <- readxl::read_excel("doc/Lynch mouse model scRNAseq genes of interest 073119.xlsx")
 
 df_markers <- readxl::read_excel("../seurat_resources/bio-rad-markers.xlsx")

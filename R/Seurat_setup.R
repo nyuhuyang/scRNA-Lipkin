@@ -29,7 +29,7 @@ colnames(df_samples) <- colnames(df_samples) %>% tolower
 keep = df_samples$tests %in% paste0("test",5:6)
 df_samples = df_samples[keep,]
 #======1.2 load  SingleCellExperiment =========================
-(load(file = "data/sce_6_20190802.Rda"))
+(load(file = "data/sce_6_20190805.Rda"))
 names(sce_list)
 object_list <- lapply(sce_list, as.Seurat)
 
@@ -48,7 +48,7 @@ save(object, file = paste0("data/LynchSyndrome_",length(df_samples$sample),"_",g
 # store mitochondrial percentage in object meta data
 Idents(object) = "orig.ident"
 Idents(object) %<>% factor(levels = df_samples$sample)
-(load(file = paste0(path, "g1_6_20190802.Rda")))
+(load(file = paste0(path, "g1_6_20190805.Rda")))
 
 object %<>% subset(subset = nFeature_RNA > 500 & nCount_RNA > 1000 & percent.mt < 15)
 # FilterCellsgenerate Vlnplot before and after filteration
@@ -57,24 +57,30 @@ g2 <- lapply(c("nFeature_RNA", "nCount_RNA", "percent.mt"), function(features){
         theme(axis.text.x = element_text(size=15),legend.position="none")
 })
 
-save(g2,file= paste0(path,"g2_6_20190802.Rda"))
+save(g2,file= paste0(path,"g2_6_20190805.Rda"))
 jpeg(paste0(path,"S1_nGene.jpeg"), units="in", width=10, height=7,res=600)
 print(plot_grid(g1[[1]]+ggtitle("nFeature_RNA before filteration")+
-                    scale_y_log10(limits = c(100,10000)),
+                    scale_y_log10(limits = c(100,10000))+
+                    theme(plot.title = element_text(hjust = 0.5)),
                 g2[[1]]+ggtitle("nFeature_RNA after filteration")+
-                    scale_y_log10(limits = c(100,10000))))
+                    scale_y_log10(limits = c(100,10000))+
+                    theme(plot.title = element_text(hjust = 0.5))))
 dev.off()
 jpeg(paste0(path,"S1_nUMI.jpeg"), units="in", width=10, height=7,res=600)
 print(plot_grid(g1[[2]]+ggtitle("nCount_RNA before filteration")+
-                    scale_y_log10(limits = c(500,100000)),
+                    scale_y_log10(limits = c(500,100000))+
+                    theme(plot.title = element_text(hjust = 0.5)),
                 g2[[2]]+ggtitle("nCount_RNA after filteration")+ 
-                    scale_y_log10(limits = c(500,100000))))
+                    scale_y_log10(limits = c(500,100000))+
+                    theme(plot.title = element_text(hjust = 0.5))))
 dev.off()
 jpeg(paste0(path,"S1_mito.jpeg"), units="in", width=10, height=7,res=600)
 print(plot_grid(g1[[3]]+ggtitle("mito % before filteration")+
-                    ylim(c(0,50)),
+                    ylim(c(0,50))+
+                    theme(plot.title = element_text(hjust = 0.5)),
                 g2[[3]]+ggtitle("mito % after filteration")+ 
-                    ylim(c(0,50))))
+                    ylim(c(0,50))+
+                    theme(plot.title = element_text(hjust = 0.5))))
 dev.off()
 
 ######################################
@@ -154,9 +160,9 @@ dev.off()
 
 object@meta.data$conditions = gsub("-.*","",object@meta.data$orig.ident)
 object@meta.data$conditions %<>% as.factor
-object@meta.data$conditions %<>% factor(levels = c("Contorl", "Aspirin"))
+object@meta.data$conditions %<>% factor(levels = c("Contorl", "Naproxen"))
 object@meta.data$orig.ident %<>% as.factor
-object@meta.data$orig.ident %<>% factor(levels = paste0(rep(c("Contorl-", "Aspirin-"),each =3),1:3))
+object@meta.data$orig.ident %<>% factor(levels = paste0(rep(c("Contorl-", "Naproxen-"),each =3),1:3))
 
 TSNEPlot.1(object, group.by="integrated_snn_res.0.6",pt.size = 1,label = T,no.legend = T,
            label.repel = T, alpha = 1,border = T,do.print = T,
@@ -176,9 +182,9 @@ p4 <- TSNEPlot.1(object, group.by="integrated_snn_res.0.6",pt.size = 1,label = T
 jpeg(paste0(path,"S1_split_TSNEPlot_all.jpeg"), units="in", width=10, height=7,res=600)
 plot_grid(p3, p4, align = "h")
 dev.off()
-
+object@assays$RNA@scale.data = matrix(0,0,0)
 object@assays$integrated@scale.data = matrix(0,0,0)
-save(object, file = "data/LynchSyndrome_6_20190802.Rda")
+save(object, file = "data/LynchSyndrome_6_20190805.Rda")
 
 object_data = object@assays$SCT@data
 save(object_data, file = "data/object_data_mm10_6_20190802.Rda")

@@ -9,7 +9,7 @@ path <- paste0("output/",gsub("-","",Sys.Date()),"/")
 if(!dir.exists(path)) dir.create(path, recursive = T)
 #====== 3.1 Create Singler Object  ==========================================
 (load(file = "data/LynchSyndrome_6_20190802.Rda"))
-(load(file = "output/singler_T_LynchSyndrome_6_20190802.Rda"))
+(load(file = "output/singler_T_LynchSyndrome_6_20190805.Rda"))
 # if singler didn't find all cell labels`
 length(singler$singler[[1]]$SingleR.single$labels) == ncol(object@assays$RNA@data)
 if(length(singler$singler[[1]]$SingleR.single$labels) < ncol(object@assays$RNA@data)){
@@ -22,15 +22,15 @@ table(rownames(singler$singler[[1]]$SingleR.single$labels) %in% colnames(object)
 singler$meta.data$orig.ident = object@meta.data$orig.ident # the original identities, if not supplied in 'annot'
 singler$meta.data$xy = object@reductions$tsne@cell.embeddings # the tSNE coordinates
 singler$meta.data$clusters = Idents(object) # the Seurat clusters (if 'clusters' not provided)
-save(singler,file="output/singler_T_LynchSyndrome_6_20190802.Rda")
+save(singler,file="output/singler_T_LynchSyndrome_6_20190805.Rda")
 
 ##############################
 # add singleR label to Seurat
 ###############################
 singlerDF = data.frame("singler1sub" = singler$singler[[1]]$SingleR.single$labels,
-                       "singler1main" = singler$singler[[1]]$SingleR.single.main$labels,
+                       #"singler1main" = singler$singler[[1]]$SingleR.single.main$labels,
                        "orig.ident" = object@meta.data$orig.ident,
-                       row.names = rownames(singler$singler[[1]]$SingleR.single$labels))
+                       row.names = rownames(object@meta.data))
 
 table(rownames(singlerDF) %in% colnames(object))
 head(singlerDF)
@@ -54,24 +54,31 @@ dev.off()
 kable(table(singlerDF$singler1sub, singlerDF$orig.ident)) %>%
         kable_styling()
 singlerDF$orig.ident %>% table() %>% kable() %>% kable_styling()
-singlerDF$singler1main %>% table() %>% kable() %>% kable_styling()
+singlerDF$singler1sub %>% table() %>% kable() %>% kable_styling()
 
 singlerDF$singler1main = gsub("Hepatocytes","Epithelial cells",singlerDF$singler1main)
-singlerDF$singler1sub = gsub("Hepatocytes","Epithelial cells",singlerDF$singler1sub)
+singlerDF$singler1main = gsub("Microglia","Macrophages",singlerDF$singler1main)
+object$singler1main = gsub("Microglia","Macrophages",object$singler1main)
+
+singlerDF$singler1sub = gsub("Tcm|Tem","T-cells",singlerDF$singler1sub)
+singlerDF$singler1sub = gsub("CLP|CMP|GMP|MEP|MPP","Progenitor cells",singlerDF$singler1sub)
+singlerDF$singler1sub = gsub("mv Endothelial cells","Endothelial cells",singlerDF$singler1sub)
+singlerDF$singler1sub = gsub("Macrophages M1","Macrophages",singlerDF$singler1sub)
 
 Idents(object) = "integrated_snn_res.0.6"
 ##############################
 # process color scheme
 ##############################
-singlerDF[,c("singler1main")] %>% table() %>% kable() %>% kable_styling()
+singlerDF[,c("singler1sub")] %>% table() %>% prop.table() %>% kable() %>% kable_styling()
 object <- AddMetaData(object = object,metadata = singlerDF)
-object <- AddMetaColor(object = object, label= "singler1main", colors = singler.colors)
-Idents(object) <- "singler1main"
+object <- AddMetaColor(object = object, label= "singler1sub", colors = singler.colors)
+
+Idents(object) <- "singler1sub"
 object %<>% sortIdent()
-TSNEPlot.1(object, group.by="singler1main",cols = ExtractMetaColor(object),
+TSNEPlot.1(object, group.by="singler1sub",cols = ExtractMetaColor(object),
            label = T,pt.size = 1,no.legend = T,label.repel = T,
-         label.size = 4, repel = T,do.return= T,do.print = F,alpha = 0.9,
-         title = "All cell types identified by Mouse RNA-seq reference database")
+         label.size = 4, repel = T,do.return= T,do.print = T,alpha = 0.9,
+         title = "All cell types identified by Human RNA-seq reference database")
 ##############################
 # Adjust cell type manually
 ##############################
@@ -79,12 +86,11 @@ cluster_2_17 <- rownames(object@meta.data)[object$integrated_snn_res.0.6 %in% c(
 object@meta.data[cluster_2_17,"singler1main"] = "Epithelial cells"
 object$singler1main = gsub("Microglia","Macrophages",object$singler1main)
 
-
 singler_colors <- readxl::read_excel("doc/singler.colors.xlsx")
 singler_colors1 = as.vector(singler_colors$singler.color1[!is.na(singler_colors$singler.color1)])
 singler_colors1[duplicated(singler_colors1)]
 length(singler_colors1)
-apply(singlerDF[,c("singler1sub","singler1main")],2,function(x) length(unique(x)))
+apply(object@meta.data[,c("singler1sub","singler1main")],2,function(x) length(unique(x)))
 object <- AddMetaColor(object = object, label= "singler1main", colors = singler_colors1)
 Idents(object) <- "singler1main"
 object %<>% sortIdent()
@@ -92,6 +98,7 @@ TSNEPlot.1(object, group.by="singler1main",cols = ExtractMetaColor(object),
            label = T,pt.size = 1,no.legend = T,label.repel = T,
            label.size = 4, repel = T,do.return= T,do.print = T,alpha = 0.9,
            title = "All cell types in tSNE plot")
+object$singler1sub %>% table() %>% kable() %>% kable_styling()
 
 save(object,file="data/LynchSyndrome_6_20190802.Rda")
 ##############################
@@ -106,3 +113,4 @@ TSNEPlot.1(object, cols = ExtractMetaColor(object),label = F,pt.size = 1,
            split.by = "orig.ident", group.by = "singler1main",label.size = 4, repel = T, 
            no.legend = T, do.print = T,border = T,
            ncol=3,title = "Compare cell types in all samples")
+

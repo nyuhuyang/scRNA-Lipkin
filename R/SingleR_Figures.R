@@ -9,7 +9,7 @@ path <- paste0("output/",gsub("-","",Sys.Date()),"/")
 if(!dir.exists(path)) dir.create(path, recursive = T)
 #====== 3.1 Create Singler Object  ==========================================
 (load(file = "data/LynchSyndrome_6_20190802.Rda"))
-(load(file = "output/singler_T_LynchSyndrome_6_20190805.Rda"))
+(load(file = "output/singler_F_LynchSyndrome_6_20190814.Rda"))
 # if singler didn't find all cell labels`
 length(singler$singler[[1]]$SingleR.single$labels) == ncol(object@assays$RNA@data)
 if(length(singler$singler[[1]]$SingleR.single$labels) < ncol(object@assays$RNA@data)){
@@ -22,13 +22,13 @@ table(rownames(singler$singler[[1]]$SingleR.single$labels) %in% colnames(object)
 singler$meta.data$orig.ident = object@meta.data$orig.ident # the original identities, if not supplied in 'annot'
 singler$meta.data$xy = object@reductions$tsne@cell.embeddings # the tSNE coordinates
 singler$meta.data$clusters = Idents(object) # the Seurat clusters (if 'clusters' not provided)
-save(singler,file="output/singler_T_LynchSyndrome_6_20190805.Rda")
+save(singler,file="output/singler_F_LynchSyndrome_6_20190814.Rda")
 
 ##############################
 # add singleR label to Seurat
 ###############################
 singlerDF = data.frame("singler1sub" = singler$singler[[1]]$SingleR.single$labels,
-                       #"singler1main" = singler$singler[[1]]$SingleR.single.main$labels,
+                       "singler1main" = singler$singler[[1]]$SingleR.single.main$labels,
                        "orig.ident" = object@meta.data$orig.ident,
                        row.names = rownames(object@meta.data))
 
@@ -70,13 +70,13 @@ Idents(object) = "integrated_snn_res.0.6"
 # process color scheme
 ##############################
 object <- AddMetaData(object = object,metadata = singlerDF)
-object <- AddMetaColor(object = object, label= "singler1sub", colors = singler.colors)
+object <- AddMetaColor(object = object, label= "singler1sub", colors = Singler::singler.colors)
 
 table(object$singler1sub,object$orig.ident) %>% prop.table(margin = 2) %>%  kable() %>% kable_styling()
 #
 Idents(object) <- "singler1sub"
 object %<>% sortIdent()
-TSNEPlot.1(object, group.by="singler1sub",cols = ExtractMetaColor(object),
+UMAPPlot.1(object, group.by="singler1sub",cols = ExtractMetaColor(object),
            label = T,pt.size = 1,no.legend = T,label.repel = T,
          label.size = 4, repel = T,do.return= T,do.print = T,alpha = 0.9,
          title = "All cell types identified by Human RNA-seq reference database")
@@ -95,23 +95,22 @@ apply(object@meta.data[,c("singler1sub","singler1main")],2,function(x) length(un
 object <- AddMetaColor(object = object, label= "singler1main", colors = singler_colors1)
 Idents(object) <- "singler1main"
 object %<>% sortIdent()
-TSNEPlot.1(object, group.by="singler1main",cols = ExtractMetaColor(object),
+UMAPPlot.1(object, group.by="singler1main",cols = ExtractMetaColor(object),
            label = T,pt.size = 1,no.legend = T,label.repel = T,
            label.size = 4, repel = T,do.return= T,do.print = T,alpha = 0.9,
-           title = "All cell types in tSNE plot")
+           title = "All cell types in UMAP plot")
 object$singler1sub %>% table() %>% kable() %>% kable_styling()
 
 save(object,file="data/LynchSyndrome_6_20190802.Rda")
 ##############################
 # split tsne plot
 ##############################
-TSNEPlot.1(object, cols = ExtractMetaColor(object),label = T,pt.size = 1,label.repel = T,
+UMAPPlot.1(object, cols = ExtractMetaColor(object),label = T,pt.size = 1,label.repel = T,
          split.by = "conditions", group.by = "singler1main",label.size = 4, repel = T, 
          no.legend = T, do.print = T,border = T,
          ncol=3,title = "Compare cell types in both conditions")
 
-TSNEPlot.1(object, cols = ExtractMetaColor(object),label = F,pt.size = 1,
+UMAPPlot.1(object, cols = ExtractMetaColor(object),label = F,pt.size = 1,
            split.by = "orig.ident", group.by = "singler1main",label.size = 4, repel = T, 
            no.legend = T, do.print = T,border = T,
            ncol=3,title = "Compare cell types in all samples")
-

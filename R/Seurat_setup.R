@@ -112,20 +112,19 @@ object %<>% FindNeighbors(reduction = "pca",dims = 1:npcs)
 object %<>% FindClusters(reduction = "pca",resolution = 0.6,
                          dims.use = 1:npcs,print.output = FALSE)
 object %<>% RunTSNE(reduction = "pca", dims = 1:npcs)
-#object %<>% RunUMAP(reduction = "pca", dims = 1:npcs)
+object %<>% RunUMAP(reduction = "pca", dims = 1:npcs)
 
-p0 <- TSNEPlot.1(object, group.by="orig.ident",pt.size = 1,label = F,
-                 label.size = 4, repel = T,title = "Original tSNE plot")
-#p1 <- UMAPPlot(object, group.by="orig.ident",pt.size = 1,label = F,
-#               label.size = 4, repel = T)+ggtitle("Original umap plot")+
-#    theme(plot.title = element_text(hjust = 0.5,size=15,face = "plain"))
+#p0 <- TSNEPlot.1(object, group.by="orig.ident",pt.size = 1,label = F,
+#                 label.size = 4, repel = T,title = "Original tSNE plot")
+p1 <- UMAPPlot.1(object, group.by="orig.ident",pt.size = 1,label = F,
+                 label.size = 4, repel = T,title = "Original UMAP plot")
 
 #======1.4 Performing SCTransform and integration =========================
 set.seed(100)
 object_list <- SplitObject(object, split.by = "orig.ident")
 object_list %<>% lapply(SCTransform)
 object.features <- SelectIntegrationFeatures(object_list, nfeatures = 3000)
-options(future.globals.maxSize= 8388608000)
+options(future.globals.maxSize= object.size(object_list)*1.5)
 object_list <- PrepSCTIntegration(object.list = object_list, anchor.features = object.features, 
                                   verbose = FALSE)
 anchors <- FindIntegrationAnchors(object_list, normalization.method = "SCT", 
@@ -146,15 +145,26 @@ object %<>% FindClusters(reduction = "pca",resolution = 0.6,
 object %<>% FindClusters(reduction = "pca",resolution = 1.2,
                          dims.use = 1:npcs,print.output = FALSE)
 object %<>% RunTSNE(reduction = "pca", dims = 1:npcs)
+object %<>% RunUMAP(reduction = "pca", dims = 1:npcs)
 
 p2 <- TSNEPlot.1(object, group.by="orig.ident",pt.size = 1,label = F,
                  label.size = 4, repel = T,title = "Intergrated tSNE plot")
 
+p3 <- UMAPPlot.1(object, group.by="orig.ident",pt.size = 1,label = F,
+                 label.size = 4, repel = T,title = "Intergrated UMAP plot")
+
 #=======1.9 summary =======================================
-jpeg(paste0(path,"S1_TSNEPlot.jpeg"), units="in", width=10, height=7,res=600)
+jpeg(paste0(path,"S1_TSNEPlot_batch.jpeg"), units="in", width=10, height=7,res=600)
 plot_grid(p0+ggtitle("Clustering without integration")+
               theme(plot.title = element_text(hjust = 0.5,size = 18)),
           p2+ggtitle("Clustering with integration")+
+              theme(plot.title = element_text(hjust = 0.5,size = 18)))
+dev.off()
+
+jpeg(paste0(path,"S1_UMAPPlot_batch.jpeg"), units="in", width=10, height=7,res=600)
+plot_grid(p1+ggtitle("Clustering without integration")+
+              theme(plot.title = element_text(hjust = 0.5,size = 18)),
+          p3+ggtitle("Clustering with integration")+
               theme(plot.title = element_text(hjust = 0.5,size = 18)))
 dev.off()
 
@@ -164,13 +174,14 @@ object@meta.data$conditions %<>% factor(levels = c("Contorl", "Naproxen"))
 object@meta.data$orig.ident %<>% as.factor
 object@meta.data$orig.ident %<>% factor(levels = paste0(rep(c("Contorl-", "Naproxen-"),each =3),1:3))
 
-TSNEPlot.1(object, group.by="integrated_snn_res.0.6",pt.size = 1,label = T,no.legend = T,
+UMAPPlot.1(object, group.by="integrated_snn_res.0.6",pt.size = 1,label = T,no.legend = T,
            label.repel = T, alpha = 1,border = T,do.print = T,
-           label.size = 4, repel = T,title = "All cluster in tSNE plot resolution = 0.6")
+           label.size = 4, repel = T,title = "All cluster in UMAP plot resolution = 0.6")
 
-TSNEPlot.1(object, group.by="integrated_snn_res.0.6",pt.size = 1,label = T,no.legend = T,
-           label.repel = T, alpha = 1,border = T,split.by = "conditions",
-           label.size = 4, repel = T,title = NULL,do.print = T)
+UMAPPlot.1(object, group.by="integrated_snn_res.0.6",split.by = "conditions",
+           pt.size = 1,label = T,no.legend = T,
+           label.repel = T, alpha = 1,border = T,do.print = T,
+           label.size = 4, repel = T,title = "All cluster in UMAP plot resolution = 0.6")
 
 p3 <- TSNEPlot.1(object, group.by="integrated_snn_res.0.6",pt.size = 1,label = T,no.legend = T,
                  label.repel = T, alpha = 1,border = T,
@@ -184,7 +195,7 @@ plot_grid(p3, p4, align = "h")
 dev.off()
 object@assays$RNA@scale.data = matrix(0,0,0)
 object@assays$integrated@scale.data = matrix(0,0,0)
-save(object, file = "data/LynchSyndrome_6_20190805.Rda")
+save(object, file = "data/LynchSyndrome_6_20190802.Rda")
 
 object_data = object@assays$SCT@data
 save(object_data, file = "data/object_data_mm10_6_20190802.Rda")

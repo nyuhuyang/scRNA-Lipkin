@@ -11,10 +11,10 @@ if(!dir.exists(marker_path))dir.create(marker_path, recursive = T)
 
 # ======== 2.1 =========== test with known markers==================
 (load(file="data/LynchSyndrome_6_20190802.Rda"))
-DefaultAssay(object) <- "integrated"
+DefaultAssay(object) <- "RNA"
 #df_markers <- readxl::read_excel("doc/Lynch mouse model scRNAseq genes of interest 073119.xlsx")
 
-df_markers <- readxl::read_excel("../seurat_resources/bio-rad-markers.xlsx")
+df_markers <- readxl::read_excel("../seurat_resources/bio-rad-markers.xlsx",sheet = "Human.sub")
 colnames(df_markers) = gsub(" ","_",colnames(df_markers))
 colnames(df_markers) = gsub(":|\\/","_",colnames(df_markers))
 colnames(df_markers) = gsub("\\+","",colnames(df_markers))
@@ -34,12 +34,12 @@ for(i in 1:length(marker.list)){
     if(length(marker.list[[i]]) == 0) next
     p <- lapply(marker.list[[i]], function(marker) {
         FeaturePlot(object = object, feature = marker,pt.size = 0.5,
-                    reduction="tsne", label = T)+
+                    reduction="umap", label = F)+
             NoLegend()+
             ggtitle(paste0(marker,Alias(df = df_markers,gene = marker)))+
             theme(plot.title = element_text(hjust = 0.5,size = 15,face = "plain"))
     })
-    jpeg(paste0(path,"markers/",names(marker.list)[i],".jpeg"),units="in", width=10, height=7,res=600)
+    jpeg(paste0(path,names(marker.list)[i],".jpeg"),units="in", width=10, height=7,res=600)
     print(do.call(cowplot::plot_grid, p)+ ggtitle(paste(names(marker.list)[i],"markers"))+
               theme(plot.title = element_text(hjust = 0.5,size = 20)))
     dev.off()

@@ -68,3 +68,12 @@ for(i in 1:length(clusters)){
         print(g)
         dev.off()
 }
+
+subfolder <- paste0(path,"DEG/")
+DefaultAssay(object) = "SCT"
+object@meta.data$integrated_snn_res.0.6.conditions = paste0(object@meta.data$integrated_snn_res.0.6,"_",
+                                              object@meta.data$conditions)
+
+Idents(object) = "integrated_snn_res.0.6.conditions"
+Foxp3<- AverageExpression(object,features = c("Foxp3","Lef1"), assays = "SCT")
+Foxp3$SCT %>% kable %>% kable_styling()

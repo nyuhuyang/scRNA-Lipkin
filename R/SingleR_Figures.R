@@ -1,4 +1,3 @@
-library(SingleR)
 library(Seurat)
 library(reshape2)
 library(pheatmap)
@@ -9,7 +8,7 @@ path <- paste0("output/",gsub("-","",Sys.Date()),"/")
 if(!dir.exists(path)) dir.create(path, recursive = T)
 #====== 3.1 Create Singler Object  ==========================================
 (load(file = "data/LynchSyndrome_6_20190802.Rda"))
-(load(file = "output/singler_F_LynchSyndrome_6_20190814.Rda"))
+(load(file = "output/singler_T_LynchSyndrome_6_20190814.Rda"))
 # if singler didn't find all cell labels`
 length(singler$singler[[1]]$SingleR.single$labels) == ncol(object@assays$RNA@data)
 if(length(singler$singler[[1]]$SingleR.single$labels) < ncol(object@assays$RNA@data)){
@@ -22,15 +21,16 @@ table(rownames(singler$singler[[1]]$SingleR.single$labels) %in% colnames(object)
 singler$meta.data$orig.ident = object@meta.data$orig.ident # the original identities, if not supplied in 'annot'
 singler$meta.data$xy = object@reductions$tsne@cell.embeddings # the tSNE coordinates
 singler$meta.data$clusters = Idents(object) # the Seurat clusters (if 'clusters' not provided)
-save(singler,file="output/singler_F_LynchSyndrome_6_20190814.Rda")
+save(singler,file="output/singler_T_LynchSyndrome_6_20190814.Rda")
 
 ##############################
 # add singleR label to Seurat
 ###############################
-singlerDF = data.frame("singler1sub" = singler$singler[[1]]$SingleR.single$labels,
-                       "singler1main" = singler$singler[[1]]$SingleR.single.main$labels,
+singlerDF = data.frame("singler1sub_immgen" = singler$singler[[1]]$SingleR.single$labels,
+                       "singler1main_immgen" = singler$singler[[1]]$SingleR.single.main$labels,
                        "orig.ident" = object@meta.data$orig.ident,
-                       row.names = rownames(object@meta.data))
+                       row.names = rownames(object@meta.data),
+                       stringsAsFactors = F)
 
 table(rownames(singlerDF) %in% colnames(object))
 head(singlerDF)
@@ -65,21 +65,44 @@ singlerDF$singler1sub = gsub("CLP|CMP|GMP|MEP|MPP","Progenitor cells",singlerDF$
 singlerDF$singler1sub = gsub("mv Endothelial cells","Endothelial cells",singlerDF$singler1sub)
 singlerDF$singler1sub = gsub("Macrophages M1","Macrophages",singlerDF$singler1sub)
 
+# ImmGene
+labels <- gsub("DC.*","DC",singlerDF$singler1sub_immgen)
+labels <- gsub("Tgd.*","Tgd",labels)
+labels <- gsub("T cells \\(T\\.Tregs)","Tregs",labels)
+labels <- gsub("B cells.*","B cells",labels)
+labels <- gsub("Endothelial cells.*","Endothelial cells",labels)
+labels <- gsub("Epithelial cells.*","Epithelial cells",labels)
+labels <- gsub("Fibroblasts.*","Fibroblasts",labels)
+labels <- gsub("ILC.*","Innate lymphoid cells",labels)
+labels <- gsub("Macrophages.*","Macrophages",labels)
+labels <- gsub("Monocytes.*","Monocytes",labels)
+labels <- gsub("Mast cells.*","Mast cells",labels)
+labels <- gsub("Neutrophils.*","Neutrophils",labels)
+labels <- gsub("NK cells.*","NK cells",labels)
+labels <- gsub("Stem cells.*","Stem cells",labels)
+labels <- gsub("Stromal cells.*","Stromal cells",labels)
+labels <- gsub("T cells \\(.*","T cells:CD4",labels)
+singlerDF$singler1sub_immgen = labels
+table(labels)
+
 Idents(object) = "integrated_snn_res.0.6"
 ##############################
 # process color scheme
 ##############################
-object <- AddMetaData(object = object,metadata = singlerDF)
-object <- AddMetaColor(object = object, label= "singler1sub", colors = Singler::singler.colors)
+object <- AddMetaData(object = object,metadata = singlerDF["singler1sub_immgen"])
+object <- AddMetaColor(object = object, label= "singler1sub_immgen", colors = SingleR::singler.colors)
 
-table(object$singler1sub,object$orig.ident) %>% prop.table(margin = 2) %>%  kable() %>% kable_styling()
-#
-Idents(object) <- "singler1sub"
+table(object$singler1sub_immgen,object$orig.ident) %>% 
+        prop.table(margin = 2) %>%  kable() %>% kable_styling()
+table(object$singler1sub_immgen) %>% 
+        prop.table() %>%  kable() %>% kable_styling()
+
+Idents(object) <- "singler1sub_immgen"
 object %<>% sortIdent()
-UMAPPlot.1(object, group.by="singler1sub",cols = ExtractMetaColor(object),
+UMAPPlot.1(object, group.by="singler1sub_immgen",cols = ExtractMetaColor(object),
            label = T,pt.size = 1,no.legend = T,label.repel = T,
          label.size = 4, repel = T,do.return= T,do.print = T,alpha = 0.9,
-         title = "All cell types identified by Human RNA-seq reference database")
+         title = "All cell types identified by ImmGene reference database")
 ##############################
 # Adjust cell type manually
 ##############################
@@ -102,7 +125,7 @@ UMAPPlot.1(object, group.by="singler1main",cols = ExtractMetaColor(object),
 object$singler1sub %>% table() %>% kable() %>% kable_styling()
 
 save(object,file="data/LynchSyndrome_6_20190802.Rda")
-##############################
+ ##############################
 # split tsne plot
 ##############################
 UMAPPlot.1(object, cols = ExtractMetaColor(object),label = T,pt.size = 1,label.repel = T,

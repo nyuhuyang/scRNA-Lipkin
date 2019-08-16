@@ -77,3 +77,15 @@ object@meta.data$integrated_snn_res.0.6.conditions = paste0(object@meta.data$int
 Idents(object) = "integrated_snn_res.0.6.conditions"
 Foxp3<- AverageExpression(object,features = c("Foxp3","Lef1"), assays = "SCT")
 Foxp3$SCT %>% kable %>% kable_styling()
+
+Idents(object) = "singler1sub_immgen"
+
+Th17_genes <- FilterGenes(object, c("CXCL3", "IL22", "IL3", "CCL4", " GZMB", 
+                               "LRMP", "CCL5", "Casp1", "Csf2", "Ccl3", 
+                               "Tbx21", "ICOS", "IL7R", "Stat4", "Lgals3",
+                               "Lag3", "IL6st", "Il1rn", "Ikzf3", "Maf",
+                               "Ahr", "Il9", "Il10"))
+
+object <- PercentageFeatureSet(object, features = Th17_genes,
+                     col.name = "activated Th17", assay = "SCT")
+FeaturePlot.1(object, features = "activated Th17",split.by = "conditions",border = T)

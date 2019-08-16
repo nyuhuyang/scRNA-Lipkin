@@ -48,3 +48,6 @@ for(i in 1:length(marker.list)){
 
 object_data <- object@assays$RNA@data
 save(object_data, file = "data/LynchSyndrome_6_20190802.Rda")
+
+
+#====== T cells ======

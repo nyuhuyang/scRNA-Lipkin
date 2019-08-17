@@ -31,13 +31,17 @@ par(mfrow=c(1,1))
 boxplot(mouse.rnaseq_rm,main="mouse.rnaseq_rm")#slow!
 testMMM(mouse.rnaseq_rm)
 
+remove(mouse.rnaseq_rm);GC()
 
 sort(unique(mouse.rnaseq$main_types))
+rm_T = grep("T cells", mouse.rnaseq$main_types)
+(rm_index <- unique(c(rm_index,rm_T)))
+
+mouse.rnaseq_rm = mouse.rnaseq$data[,-rm_index]
 types = FineTune(as.character(mouse.rnaseq$types[-rm_index]),
                        main.type = FALSE)
 main_types = FineTune(as.character(mouse.rnaseq$main_types[-rm_index]),
                             main.type = TRUE)
-sort(unique(main_types))
 mouse.rnaseq = CreateSinglerReference(name = 'mouse.rnaseq',
                                           expr = mouse.rnaseq_rm,
                                           types = types, 
@@ -45,7 +49,7 @@ mouse.rnaseq = CreateSinglerReference(name = 'mouse.rnaseq',
 save(mouse.rnaseq,file='../SingleR/data/mouse.rnaseq.RData')
 
 #===========================================
-# check GSE109125 data==============================
+# check GSE109125 data
 #===========================================
 
 GSE109125 <- read.csv("data/GSE109125_Normalized_Gene_count_table.csv")
@@ -73,8 +77,8 @@ RemoveDup <- function(mat){
 GSE109125 <- RemoveDup(GSE109125)
 dim(GSE109125)
 head(GSE109125[,1:3])
-GSE109125 = log1p(GSE109125)
-testMMM(GSE109125)
+GSE109125 = log2(GSE109125+1)
+#testMMM(GSE109125)
 
 # GSE109125 cell types======
 
@@ -92,13 +96,22 @@ GSE109125_label = apply(GSE109125_label,2,as.character)
 rownames(GSE109125_label) = GSE109125_label[,"rownames"]
 GSE109125_label[,"rownames"] = sub('.[1-5]$', '', rownames(GSE109125_label))
 
-Th <- grepl("Th",GSE109125_label[,"rownames"]) & GSE109125_label[,"type"]  == "ab T cells"
-GSE109125_label[Th,"type"] = "T_cells:Th"
-
 GSE109125_label[grepl("NKT",GSE109125_label[,"rownames"]),"type"] = "T_cells:NKT"
 GSE109125_label[grepl("T\\.4",GSE109125_label[,"rownames"]),"type"] = "T_cells:CD4+"
 GSE109125_label[grepl("T\\.8|T8\\.",GSE109125_label[,"rownames"]),"type"] = "T_cells:CD8+"
-GSE109125_label[grepl("Treg\\.4",GSE109125_label[,"rownames"]),"type"] = "T_cells:Tregs"
+GSE109125_label[grepl("Treg\\.4",GSE109125_label[,"rownames"]),"type"] = "T_cells:Treg"
+GSE109125_label[,"type"] = gsub("ab T cells","T_cells:ab",GSE109125_label[,"type"])
+
+GSE109125_label[,"main_type"] = gsub("T_cells\\:gd","T_cells",GSE109125_label[,"main_type"])
+
+Th <- grepl("Th",GSE109125_label[,"rownames"]) & 
+        GSE109125_label[,"type"]  %in% c("T_cells:ab")
+GSE109125_label[Th,"type"] = "T_cells:Th"
+GSE109125_label[grepl("preT",GSE109125_label[,"rownames"]),"type"] = "T_cells:preT_Th"
+
+GSE109125_label[,"type"] = FineTune(GSE109125_label[,"type"], main.type = FALSE)
+GSE109125_label[,"main_type"] = FineTune(GSE109125_label[,"main_type"],main.type = TRUE)
+
 #---- test ------
 (colnames <- sub('.[1-5]$', '', colnames(GSE109125)))
 df_table <- table(rownames(GSE109125_label), GSE109125_label[,"type"]) %>%
